@@ -1,17 +1,10 @@
 import os
+
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(".env")
 
-APP_NAME=os.getenv(
-    "APP_NAME",
-    "Elespa Intelligent Digital Twin"
-)
-APP_VERSION=os.getenv(
-    "APP_VERSION",
-    "1.0.0"
-)
-ENVIRONMENT=os.getenv(
-    "ENVIRONMENT",
-    "development"
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not configured")

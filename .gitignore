@@ -9,7 +9,7 @@ venv/
 .venv/
 
 #environment variables
-.env 
+**/.env
 
 #macOs
 .DS_Store 
