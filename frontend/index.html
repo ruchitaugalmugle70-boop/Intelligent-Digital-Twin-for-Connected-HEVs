@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ELESPA HEV — E-TWIN Intelligent Digital Twin Dashboard</title>
+<meta name="description" content="Real-time Virtual Representation & CAD Digital Twin of Connected Hybrid Electric Vehicle"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-main:#090d16;
+  --bg-sidebar:#060910;
+  --bg-card:#0f1524;
+  --bg-card-header:#131b2e;
+  --bg-card-inner:#0a0f1c;
+  --border:#1a2338;
+  --primary:#2563eb;
+  --primary-glow:rgba(37,99,235,0.4);
+  --accent-cyan:#38bdf8;
+  --accent-green:#10b981;
+  --accent-amber:#f59e0b;
+  --accent-red:#ef4444;
+  --accent-purple:#a855f7;
+  --text-main:#f8fafc;
+  --text-sub:#94a3b8;
+  --text-muted:#64748b;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html,body{
+  min-height:100%;
+  background:var(--bg-main);
+  color:var(--text-main);
+  font-family:var(--font);
+  font-size:12px;
+  line-height:1.4;
+  overflow-x:hidden;
+}
+
+/* ── LAYOUT ── */
+#app-layout{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  min-height:100vh;
+}
+
+/* ── LEFT SIDEBAR ── */
+#sidebar{
+  background:var(--bg-sidebar);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:14px 10px;gap:16px;
+}
+.sidebar-logo{display:flex;align-items:center;gap:8px;padding:2px 6px;}
+.logo-icon{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#fff;}
+.logo-text{font-size:14px;font-weight:800;letter-spacing:0.5px;color:#10b981;}
+.nav-menu{display:flex;flex-direction:column;gap:2px;list-style:none;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;color:var(--text-sub);font-size:11.5px;font-weight:500;cursor:pointer;transition:0.18s;text-decoration:none;}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,0.04);}
+.nav-item.active{background:var(--primary);color:#fff;font-weight:600;box-shadow:0 0 14px var(--primary-glow);}
+.nav-icon{font-size:14px;width:16px;text-align:center;}
+
+/* ── MAIN CONTENT ── */
+#main-content{display:flex;flex-direction:column;padding:12px 16px 24px 16px;gap:10px;overflow-y:auto;}
+
+/* Header */
+#top-header{display:flex;align-items:center;justify-content:space-between;}
+.header-titles{text-align:center;flex:1;}
+.header-titles h1{font-size:15px;font-weight:800;color:#fff;}
+.header-titles p{font-size:10.5px;color:var(--text-muted);margin-top:1px;}
+.header-right-meta{display:flex;align-items:center;gap:10px;}
+.vid-badge{font-size:11px;color:var(--text-sub);font-family:var(--mono);}
+.live-pill{display:flex;align-items:center;gap:6px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);padding:3px 8px;border-radius:12px;font-size:10.5px;font-weight:600;color:var(--accent-green);}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 6px var(--accent-green);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* Top 6-Metric Strip */
+.top-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.metric-tile{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:9px 11px;display:flex;align-items:center;gap:10px;}
+.metric-icon{font-size:17px;}
+.metric-data{flex:1;}
+.metric-label{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;}
+.metric-val{font-size:15px;font-weight:800;font-family:var(--mono);color:#fff;}
+.metric-val span{font-size:10.5px;font-weight:500;color:var(--text-sub);}
+.metric-bar-bg{width:100%;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:3px;overflow:hidden;}
+.metric-bar-fill{height:100%;background:var(--accent-green);border-radius:2px;transition:width 0.4s;}
+
+/* Card */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;}
+.card-header{background:var(--bg-card-header);border-bottom:1px solid var(--border);padding:7px 14px;display:flex;align-items:center;justify-content:space-between;min-height:34px;}
+.card-title{font-size:11.5px;font-weight:700;color:#fff;}
+.card-actions{display:flex;align-items:center;gap:6px;}
+.btn-toggle-group{display:flex;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:5px;padding:2px;}
+.btn-toggle{padding:3px 9px;background:transparent;border:none;border-radius:4px;color:var(--text-sub);font-size:10px;font-weight:600;cursor:pointer;transition:0.15s;}
+.btn-toggle.active{background:var(--primary);color:#fff;}
+
+/* Middle 2-Column */
+.middle-section{display:grid;grid-template-columns:1.3fr 1fr;gap:10px;}
+
+/* ── 3D TWIN VIEWPORT ── */
+.twin-viewport{position:relative;height:340px;background:#080c16;overflow:hidden;}
+.twin-viewport .scooter-img{width:52%;height:auto;max-height:80%;object-fit:contain;position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;filter:drop-shadow(0 8px 30px rgba(0,0,0,0.7));transition:opacity 0.4s ease;}
+.twin-viewport .road-canvas{position:absolute;inset:0;z-index:1;}
+/* Scooter Driving Bobbing Animation */
+@keyframes scooterBob{0%,100%{transform:translate(-50%,-50%) translateY(0px)}25%{transform:translate(-50%,-50%) translateY(-2px)}50%{transform:translate(-50%,-50%) translateY(1px)}75%{transform:translate(-50%,-50%) translateY(-1.5px)}}
+.scooter-driving .scooter-img{animation:scooterBob 0.8s ease-in-out infinite;}
+
+/* Viewport Subtitle */
+.twin-sub{font-size:9.5px;color:var(--text-muted);padding-left:14px;margin-top:-3px;border-left:2px solid var(--text-muted);}
+
+/* Interactive Component HUD Pins */
+.hud-pin{position:absolute;z-index:5;background:rgba(11,16,28,0.92);border:1px solid var(--border);border-radius:6px;padding:5px 9px;backdrop-filter:blur(8px);cursor:pointer;transition:0.2s;box-shadow:0 4px 14px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:2px;font-size:9.5px;}
+.hud-pin:hover{border-color:var(--accent-cyan);transform:scale(1.05);}
+.hud-pin .pin-connector{position:absolute;background:rgba(56,189,248,0.5);}
+.hud-pin-title{font-weight:700;color:#fff;display:flex;align-items:center;gap:4px;}
+.hud-pin-status{font-weight:600;display:flex;align-items:center;gap:4px;}
+.hud-pin-status.green{color:var(--accent-green);}
+.hud-pin-status.green::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 5px var(--accent-green);}
+.hud-pin-status.amber{color:var(--accent-amber);}
+.hud-pin-status.blue{color:var(--accent-cyan);}
+
+/* Blueprint CAD Overlay */
+.blueprint-overlay{position:absolute;inset:0;z-index:8;background:#090d16;display:none;align-items:center;justify-content:center;}
+.blueprint-overlay.active{display:flex;}
+.blueprint-overlay img{max-width:100%;max-height:100%;object-fit:contain;}
+
+/* CAD Legend */
+.cad-legend{position:absolute;top:8px;right:8px;background:rgba(11,16,28,0.92);border:1px solid var(--border);border-radius:6px;padding:6px 10px;backdrop-filter:blur(8px);z-index:6;display:none;flex-direction:column;gap:4px;font-size:9px;}
+.cad-legend.active{display:flex;}
+.cad-leg-title{font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:2px;}
+.cad-leg-item{display:flex;align-items:center;gap:6px;color:var(--text-main);}
+.cad-dot{width:7px;height:7px;border-radius:50%;}
+
+/* Bottom 3D Controls */
+.twin-controls{position:absolute;bottom:42px;left:10px;display:flex;gap:5px;z-index:10;}
+.t-btn{background:rgba(15,23,42,0.88);border:1px solid var(--border);border-radius:5px;color:var(--text-sub);padding:4px 8px;font-size:10px;cursor:pointer;backdrop-filter:blur(6px);transition:0.15s;}
+.t-btn:hover{color:#fff;border-color:var(--primary);}
+
+/* Color Picker Chips */
+.color-picker{position:absolute;bottom:42px;right:10px;display:flex;gap:5px;background:rgba(15,23,42,0.88);border:1px solid var(--border);border-radius:14px;padding:3px 8px;backdrop-filter:blur(6px);z-index:10;}
+.c-chip{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.2);cursor:pointer;transition:0.15s;}
+.c-chip:hover,.c-chip.active{border-color:#38bdf8;transform:scale(1.2);}
+
+/* Bottom Telemetry Strip */
+.twin-stats{position:absolute;bottom:0;left:0;right:0;z-index:10;display:grid;grid-template-columns:repeat(6,1fr);background:rgba(8,12,22,0.92);border-top:1px solid var(--border);backdrop-filter:blur(8px);}
+.twin-stat{display:flex;align-items:center;gap:6px;padding:5px 8px;border-right:1px solid rgba(255,255,255,0.06);}
+.twin-stat:last-child{border-right:none;}
+.twin-stat-icon{font-size:12px;color:var(--text-muted);}
+.twin-stat-data{}
+.twin-stat-label{font-size:7.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.3px;}
+.twin-stat-val{font-size:11px;font-weight:700;font-family:var(--mono);color:#fff;}
+
+/* ── MAP ── */
+.map-wrap{position:relative;height:215px;background:#090d16;overflow:hidden;}
+.map-wrap canvas{width:100%;height:100%;display:block;}
+.map-zoom{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:4px;}
+.zoom-btn{width:22px;height:22px;background:rgba(15,23,42,0.9);border:1px solid var(--border);color:#fff;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;font-weight:700;}
+.loc-strip{padding:8px 12px;background:var(--bg-card-inner);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+.loc-title{font-size:9.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;}
+.loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:10.5px;}
+.loc-k{color:var(--text-muted);}
+.loc-v{font-family:var(--mono);color:#fff;font-weight:600;}
+
+/* Lower 4-Column */
+.lower-section{display:grid;grid-template-columns:1.25fr 0.9fr 1fr 1fr;gap:10px;}
+.chart-body{padding:10px 12px;height:180px;position:relative;}
+.subsystem-list{padding:8px 12px;display:flex;flex-direction:column;gap:5px;}
+.subsystem-item{display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:11px;}
+.sub-name{display:flex;align-items:center;gap:7px;color:var(--text-main);font-weight:500;}
+.sub-badge{font-size:10px;font-weight:600;color:var(--accent-green);display:flex;align-items:center;gap:4px;}
+.sub-badge::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent-green);}
+
+/* AI Insights */
+.ai-body{padding:10px 12px;display:flex;flex-direction:column;gap:7px;}
+.ai-score-row{display:flex;align-items:center;gap:12px;margin-bottom:3px;}
+.ai-donut-wrap{position:relative;width:44px;height:44px;}
+.ai-donut-wrap canvas{width:100%;height:100%;}
+.ai-donut-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:var(--mono);color:#fff;}
+.ai-score-label h4{font-size:12px;font-weight:700;color:#fff;}
+.ai-score-label span{font-size:10px;color:var(--text-muted);}
+.ai-stat{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;}
+.ai-k{color:var(--text-muted);display:flex;align-items:center;gap:6px;}
+.ai-v{font-weight:600;color:#fff;}
+.ai-v.green{color:var(--accent-green);}
+
+/* Alerts */
+.alerts-list{padding:8px 10px;display:flex;flex-direction:column;gap:6px;}
+.alert-item{border-radius:6px;padding:6px 10px;display:flex;align-items:flex-start;gap:8px;border:1px solid transparent;}
+.alert-item.warn{background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.25);}
+.alert-item.ok{background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.25);}
+.alert-item.info{background:rgba(37,99,235,0.08);border-color:rgba(37,99,235,0.25);}
+.alert-icon{font-size:13px;margin-top:1px;}
+.alert-text{flex:1;}
+.alert-title{font-size:10.5px;font-weight:700;color:#fff;}
+.alert-sub{font-size:9.5px;color:var(--text-sub);}
+.alert-time{font-size:8.5px;color:var(--text-muted);margin-top:1px;}
+
+/* Bottom Feature Strip */
+.bottom-strip{display:grid;grid-template-columns:repeat(4,1fr) 1.25fr;gap:8px;margin-top:3px;}
+.feature-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:0.18s;}
+.feature-card:hover{border-color:var(--primary);transform:translateY(-2px);}
+.feature-card h3{font-size:10px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:0.4px;}
+.feature-card p{font-size:9.5px;color:var(--text-sub);line-height:1.35;}
+.tech-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;}
+.tech-card h3{font-size:10px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;}
+.tech-line{font-size:9.5px;display:flex;justify-content:space-between;}
+.tech-line span:first-child{color:var(--text-muted);}
+.tech-line span:last-child{color:var(--text-main);font-weight:600;}
+
+/* ── RIGHT SIDEBAR ── */
+#right-sidebar{background:var(--bg-sidebar);border-left:1px solid var(--border);padding:14px 12px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.right-sec-title{font-size:11px;font-weight:800;color:#38bdf8;text-transform:uppercase;letter-spacing:0.5px;}
+.right-desc{font-size:10.5px;color:var(--text-sub);line-height:1.45;}
+.flow-col{display:flex;flex-direction:column;gap:6px;}
+.flow-box{padding:7px 9px;border-radius:7px;font-size:10.5px;font-weight:600;display:flex;align-items:center;gap:8px;border:1px solid transparent;}
+.flow-box.green{background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.3);color:#6ee7b7;}
+.flow-box.blue{background:rgba(6,182,212,0.12);border-color:rgba(6,182,212,0.3);color:#67e8f9;}
+.flow-box.yellow{background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:#fcd34d;}
+.flow-box.purple{background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.3);color:#c4b5fd;}
+.flow-box.red{background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.3);color:#fca5a5;}
+.flow-arrow{text-align:center;color:var(--text-muted);font-size:11px;line-height:1;}
+.flow-note{font-size:9.5px;color:var(--text-muted);background:rgba(255,255,255,0.03);border:1px dashed var(--border);padding:6px 8px;border-radius:6px;line-height:1.35;}
+
+/* CAD Modal */
+#cad-modal{position:fixed;inset:0;background:rgba(5,8,15,0.92);backdrop-filter:blur(10px);z-index:9999;display:none;flex-direction:column;padding:20px;}
+#cad-modal.active{display:flex;}
+.modal-bar{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.modal-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:16px 0;}
+.modal-body img{max-width:95%;max-height:85vh;object-fit:contain;border-radius:8px;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,0.8);}
+</style>
+</head>
+<body>
+
+<div id="app-layout">
+
+  <!-- LEFT NAV -->
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">ELESPA HEV</div>
+    </div>
+    <ul class="nav-menu">
+      <li><a class="nav-item active" href="#" onclick="selectNav(this)"><span class="nav-icon">📊</span> Overview</a></li>
+      <li><a class="nav-item" href="#" onclick="selectNav(this)"><span class="nav-icon">📈</span> Live Telemetry</a></li>
+      <li><a class="nav-item" href="#" onclick="selectNav(this)"><span class="nav-icon">🚘</span> Vehicle Twin</a></li>
+      <li><a class="nav-item" href="#" onclick="selectNav(this)"><span class="nav-icon">🧠</span> AI Insights</a></li>
+      <li><a class="nav-item" href="#" onclick="selectNav(this)"><span class="nav-icon">🔍</span> Diagnostics</a></li>
+      <li><a class="nav-item" href="#" onclick="selectNav(this)"><span class="nav-icon">🔬</span> Simulation</a></li>
+      <li><a class="nav-item" href="#" onclick="selectNav(this)"><span class="nav-icon">🛠</span> Maintenance</a></li>
+      <li><a class="nav-item" href="#" onclick="selectNav(this)"><span class="nav-icon">📋</span> Reports</a></li>
+      <li><a class="nav-item" href="#" onclick="selectNav(this)"><span class="nav-icon">🔔</span> Alerts</a></li>
+      <li><a class="nav-item" href="#" onclick="selectNav(this)"><span class="nav-icon">⚙️</span> Settings</a></li>
+    </ul>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main-content">
+
+    <!-- Header -->
+    <header id="top-header">
+      <div style="width:100px"></div>
+      <div class="header-titles">
+        <h1>Intelligent Digital Twin Dashboard</h1>
+        <p>Real-time Virtual Representation of Connected Hybrid Electric Vehicle</p>
+      </div>
+      <div class="header-right-meta">
+        <span class="vid-badge">Vehicle ID : HEV_2025_001</span>
+        <div class="live-pill"><div class="live-dot"></div><span>Live</span></div>
+        <button style="background:transparent;border:none;color:var(--text-sub);font-size:15px;cursor:pointer;" title="Alerts">🔔</button>
+      </div>
+    </header>
+
+    <!-- Top 6-Metric Strip -->
+    <div class="top-strip">
+      <div class="metric-tile">
+        <div class="metric-icon" style="color:var(--accent-green)">🔋</div>
+        <div class="metric-data">
+          <div class="metric-label">Battery SOC</div>
+          <div class="metric-val" id="m-soc">82%</div>
+          <div class="metric-bar-bg"><div class="metric-bar-fill" id="m-soc-bar" style="width:82%"></div></div>
+        </div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-icon" style="color:#38bdf8">🏎️</div>
+        <div class="metric-data">
+          <div class="metric-label">Vehicle Speed</div>
+          <div class="metric-val"><span id="m-speed">48</span> <span>km/h</span></div>
+        </div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-icon" style="color:var(--accent-red)">🌡️</div>
+        <div class="metric-data">
+          <div class="metric-label">Motor Temp.</div>
+          <div class="metric-val"><span id="m-temp">63</span> <span>°C</span></div>
+        </div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-icon" style="color:var(--accent-green)">💚</div>
+        <div class="metric-data">
+          <div class="metric-label">Health Score</div>
+          <div class="metric-val"><span id="m-health">92</span> <span>/100</span></div>
+        </div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-icon" style="color:var(--accent-cyan)">📍</div>
+        <div class="metric-data">
+          <div class="metric-label">Range</div>
+          <div class="metric-val"><span id="m-range">128</span> <span>km</span></div>
+        </div>
+      </div>
+      <div class="metric-tile">
+        <div class="metric-icon" style="color:var(--accent-green)">🍃</div>
+        <div class="metric-data">
+          <div class="metric-label">Mode</div>
+          <div class="metric-val" style="font-size:14px;color:var(--accent-green)">Hybrid</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle: 3D Twin + Map -->
+    <div class="middle-section">
+
+      <!-- 3D Vehicle Twin -->
+      <div class="card">
+        <div class="card-header">
+          <div style="display:flex;flex-direction:column;gap:1px;">
+            <div class="card-title">3D Vehicle Twin</div>
+            <div class="twin-sub">Electric Scooter – Digital Twin</div>
+          </div>
+          <div class="card-actions">
+            <div class="btn-toggle-group">
+              <button class="btn-toggle active" id="btn-3d" onclick="setView('3d')">3D View</button>
+              <button class="btn-toggle" id="btn-sys" onclick="setView('system')">System View</button>
+              <button class="btn-toggle" id="btn-bp" onclick="setView('blueprint')">Blueprint CAD</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="twin-viewport" id="twin-viewport">
+          <!-- Real 3D WebGL Three.js Canvas -->
+          <canvas id="three-scooter-canvas" style="width:100%;height:100%;display:block;outline:none;cursor:grab;"></canvas>
+
+          <!-- Blueprint Overlay -->
+          <div class="blueprint-overlay" id="bp-overlay">
+            <img src="assets/e_twin_full_cad.jpg" alt="E-TWIN CAD Blueprint"/>
+          </div>
+
+          <!-- Interactive Component HUD Pins -->
+          <div class="hud-pin" id="pin-batt" style="top:28%;left:18%">
+            <span class="hud-pin-title">🔋 Battery</span>
+            <span class="hud-pin-status green" id="pin-batt-status">Health: Good</span>
+          </div>
+          <div class="hud-pin" id="pin-ctrl" style="top:22%;right:22%">
+            <span class="hud-pin-title">🔌 Controller</span>
+            <span class="hud-pin-status green" id="pin-ctrl-status">Status: OK</span>
+          </div>
+          <div class="hud-pin" id="pin-mot" style="bottom:30%;left:12%">
+            <span class="hud-pin-title">⚙️ Motor</span>
+            <span class="hud-pin-status green" id="pin-mot-status">Status: Healthy</span>
+          </div>
+
+          <!-- CAD Component Legend (System View) -->
+          <div class="cad-legend" id="cad-legend">
+            <div class="cad-leg-title">Key Components</div>
+            <div class="cad-leg-item"><span class="cad-dot" style="background:#10b981"></span> Lithium-ion Battery Pack</div>
+            <div class="cad-leg-item"><span class="cad-dot" style="background:#f59e0b"></span> BMS (Battery Mgmt)</div>
+            <div class="cad-leg-item"><span class="cad-dot" style="background:#0284c7"></span> Controller / ECU</div>
+            <div class="cad-leg-item"><span class="cad-dot" style="background:#ef4444"></span> Electric Hub Motor</div>
+            <div class="cad-leg-item"><span class="cad-dot" style="background:#a855f7"></span> Suspension Coils</div>
+            <div class="cad-leg-item"><span class="cad-dot" style="background:#f97316"></span> Wiring Harness</div>
+          </div>
+
+          <!-- Bottom Controls -->
+          <div class="twin-controls">
+            <button class="t-btn" onclick="resetCamera()">↻</button>
+            <button class="t-btn" id="btn-pause" onclick="toggleMotion()">⏸</button>
+            <button class="t-btn" onclick="cycleCamera()">⊕</button>
+            <button class="t-btn" onclick="openCadModal()">📷 Camera</button>
+          </div>
+
+          <!-- Color Picker -->
+          <div class="color-picker">
+            <button class="c-chip active" style="background:#f8fafc" title="Arctic White" onclick="setPaint('white',this)"></button>
+            <button class="c-chip" style="background:#18181b" title="Matte Black" onclick="setPaint('black',this)"></button>
+            <button class="c-chip" style="background:#0284c7" title="Electric Blue" onclick="setPaint('blue',this)"></button>
+            <button class="c-chip" style="background:#dc2626" title="Cherry Red" onclick="setPaint('red',this)"></button>
+            <button class="c-chip" style="background:#64748b" title="Graphite Grey" onclick="setPaint('grey',this)"></button>
+          </div>
+
+          <!-- Bottom Telemetry Stats Strip -->
+          <div class="twin-stats">
+            <div class="twin-stat"><span class="twin-stat-icon">🏎️</span><div class="twin-stat-data"><div class="twin-stat-label">Speed</div><div class="twin-stat-val" id="ts-speed">45 km/h</div></div></div>
+            <div class="twin-stat"><span class="twin-stat-icon">📍</span><div class="twin-stat-data"><div class="twin-stat-label">Range</div><div class="twin-stat-val" id="ts-range">85 km</div></div></div>
+            <div class="twin-stat"><span class="twin-stat-icon">🔋</span><div class="twin-stat-data"><div class="twin-stat-label">Battery</div><div class="twin-stat-val" id="ts-batt">78%</div></div></div>
+            <div class="twin-stat"><span class="twin-stat-icon">🌡️</span><div class="twin-stat-data"><div class="twin-stat-label">Temperature</div><div class="twin-stat-val" id="ts-temp">32 °C</div></div></div>
+            <div class="twin-stat"><span class="twin-stat-icon">📏</span><div class="twin-stat-data"><div class="twin-stat-label">Total Distance</div><div class="twin-stat-val" id="ts-dist">1250 km</div></div></div>
+            <div class="twin-stat"><span class="twin-stat-icon">🕐</span><div class="twin-stat-data"><div class="twin-stat-label">Last Updated</div><div class="twin-stat-val" id="ts-updated">2 min ago</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Location -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Live Location</div>
+          <div class="card-actions">
+            <div class="map-zoom">
+              <button class="zoom-btn" onclick="zoomMap(1)">+</button>
+              <button class="zoom-btn" onclick="zoomMap(-1)">−</button>
+            </div>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <canvas id="map-canvas"></canvas>
+        </div>
+        <div class="loc-strip">
+          <div class="loc-title">Location Details</div>
+          <div class="loc-grid">
+            <div><span class="loc-k">Latitude: </span><span class="loc-v" id="map-lat">18.5204 °N</span></div>
+            <div><span class="loc-k">Longitude: </span><span class="loc-v" id="map-lon">73.8567 °E</span></div>
+            <div><span class="loc-k">Heading: </span><span class="loc-v" id="map-heading">95° (East)</span></div>
+            <div><span class="loc-k">Last Updated: </span><span class="loc-v" id="map-time">Just now</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lower: 4 Cards -->
+    <div class="lower-section">
+
+      <!-- Chart -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Live Telemetry (Real-time)</div></div>
+        <div class="chart-body"><canvas id="chart-telem"></canvas></div>
+      </div>
+
+      <!-- Subsystem Status -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Subsystem Status</div></div>
+        <div class="subsystem-list">
+          <div class="subsystem-item"><div class="sub-name">🔋 Battery</div><div class="sub-badge">Healthy</div></div>
+          <div class="subsystem-item"><div class="sub-name">⚙️ Motor</div><div class="sub-badge">Healthy</div></div>
+          <div class="subsystem-item"><div class="sub-name">💡 Controller</div><div class="sub-badge">Healthy</div></div>
+          <div class="subsystem-item"><div class="sub-name">🎛️ BMS</div><div class="sub-badge">Healthy</div></div>
+          <div class="subsystem-item"><div class="sub-name">🛑 Braking System</div><div class="sub-badge" style="color:var(--accent-amber)">OK</div></div>
+          <div class="subsystem-item"><div class="sub-name">📡 Communication</div><div class="sub-badge">Connected</div></div>
+        </div>
+      </div>
+
+      <!-- AI Insights -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">AI Insights</div></div>
+        <div class="ai-body">
+          <div class="ai-score-row">
+            <div class="ai-donut-wrap"><canvas id="donut-canvas" width="44" height="44"></canvas><div class="ai-donut-val" id="donut-val">92</div></div>
+            <div class="ai-score-label"><h4>Health Score</h4><span>92 / 100 System Integrity</span></div>
+          </div>
+          <div class="ai-stat"><span class="ai-k">🛡️ Failure Risk</span><span class="ai-v green">Low Risk</span></div>
+          <div class="ai-stat"><span class="ai-k">📅 Next Maintenance</span><span class="ai-v">in 15 days</span></div>
+          <div class="ai-stat"><span class="ai-k">👤 Rider Behavior</span><span class="ai-v green">Safe</span></div>
+          <div class="ai-stat"><span class="ai-k">⚡ Energy Efficiency</span><span class="ai-v green">87%</span></div>
+        </div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Alerts</div></div>
+        <div class="alerts-list">
+          <div class="alert-item warn">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-text"><div class="alert-title">High Motor Temp.</div><div class="alert-sub">63 °C (Normal &lt; 80 °C)</div><div class="alert-time">2 min ago</div></div>
+          </div>
+          <div class="alert-item ok">
+            <div class="alert-icon">✅</div>
+            <div class="alert-text"><div class="alert-title">All Systems Normal</div><div class="alert-sub">No issues detected</div><div class="alert-time">5 min ago</div></div>
+          </div>
+          <div class="alert-item info">
+            <div class="alert-icon">ℹ️</div>
+            <div class="alert-text"><div class="alert-title">Next Service Due</div><div class="alert-sub">in 15 days</div><div class="alert-time">10 min ago</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Feature Strip -->
+    <div class="bottom-strip">
+      <div class="feature-card">
+        <h3>1. 3D Vehicle Twin</h3>
+        <p>Shows the virtual 3D model of the vehicle. Parts change color/status based on real data.</p>
+      </div>
+      <div class="feature-card">
+        <h3>2. Live Location</h3>
+        <p>Map shows exact position in real-time using GPS coordinates &amp; heading.</p>
+      </div>
+      <div class="feature-card">
+        <h3>3. Telemetry &amp; AI Data</h3>
+        <p>Live charts show CAN data. AI gives health score, failure risk, maintenance prediction.</p>
+      </div>
+      <div class="feature-card">
+        <h3>4. Decision Support</h3>
+        <p>Alerts and recommendations for operators and service engineers.</p>
+      </div>
+      <div class="tech-card">
+        <h3>Technologies You Can Use</h3>
+        <div class="tech-line"><span>Frontend:</span><span>React + Three.js + Mapbox</span></div>
+        <div class="tech-line"><span>Backend:</span><span>FastAPI (Python)</span></div>
+        <div class="tech-line"><span>Database:</span><span>PostgreSQL / Timescale</span></div>
+        <div class="tech-line"><span>Real-time:</span><span>WebSocket / MQTT</span></div>
+        <div class="tech-line"><span>AI / ML:</span><span>Python (Scikit-learn, PyTorch)</span></div>
+        <div class="tech-line"><span>IoT Device:</span><span>ESP32 + Sensors + CAN-FD</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- CAD Modal -->
+<div id="cad-modal">
+  <div class="modal-bar">
+    <h2 style="font-size:14px;font-weight:700;color:#fff">E-TWIN Digital Twin CAD &amp; Engineering Specification Sheet</h2>
+    <button onclick="closeCadModal()" style="background:#1e293b;border:none;color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600">✕ Close</button>
+  </div>
+  <div class="modal-body"><img src="assets/e_twin_full_cad.jpg" alt="E-TWIN CAD Sheet"/></div>
+</div>
+
+<script>
+// ── STATE ──
+const paintImages = {
+  white: 'assets/etwin_white.jpg',
+  black: 'assets/etwin_black.jpg',
+  blue:  'assets/etwin_blue.jpg',
+  red:   'assets/etwin_red.jpg',
+  grey:  'assets/etwin_grey.jpg'
+};
+const xrayImage = 'assets/etwin_xray.jpg';
+let currentPaint = 'white';
+let currentView = '3d';
+let roadMotion = true;
+let roadOffset = 0;
+let liveData = { speed:48, battery_soc:82, battery_voltage:72.4, battery_current:12.5, motor_temperature:63, health_score:92 };
+
+// ── NAV ──
+function selectNav(el) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+// ── 3D THREE.JS WEBGL ENGINE & BLENDER GLB LOADER ──
+let threeScene, threeCamera, threeRenderer, threeControls, scooterModel, roadDashes = [], flowerBeds = [];
+const paintColorMap = {
+  white: 0xEDE9E1,
+  black: 0x141416,
+  blue:  0x0284C7,
+  red:   0xDC2626,
+  grey:  0x64748B
+};
+
+function initThreeScene() {
+  const canvas = document.getElementById('three-scooter-canvas');
+  if (!canvas || typeof THREE === 'undefined') return;
+
+  // Renderer
+  threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  threeRenderer.setSize(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
+  threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  threeRenderer.shadowMap.enabled = true;
+  threeRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  threeRenderer.toneMappingExposure = 1.1;
+
+  // Scene & Camera
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color(0x7BA7D7);
+  threeScene.fog = new THREE.FogExp2(0xC5DBF2, 0.008);
+
+  threeCamera = new THREE.PerspectiveCamera(45, canvas.parentElement.clientWidth / canvas.parentElement.clientHeight, 0.1, 500);
+  threeCamera.position.set(-3.2, 1.8, 4.2);
+
+  // OrbitControls for 360 degree 3D rotation
+  if (typeof THREE.OrbitControls !== 'undefined') {
+    threeControls = new THREE.OrbitControls(threeCamera, canvas);
+    threeControls.target.set(0.3, 1.1, 0);
+    threeControls.enableDamping = true;
+    threeControls.dampingFactor = 0.05;
+    threeControls.maxPolarAngle = Math.PI / 2.05;
+  }
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0xFFFFFF, 1.1);
+  threeScene.add(ambient);
+
+  const sun = new THREE.DirectionalLight(0xFFFDF5, 2.2);
+  sun.position.set(-12, 18, 10);
+  sun.castShadow = true;
+  threeScene.add(sun);
+
+  const skyFill = new THREE.DirectionalLight(0xBAE6FD, 0.7);
+  skyFill.position.set(10, 10, -5);
+  threeScene.add(skyFill);
+
+  // ── 3D ROAD ──
+  const roadGeo = new THREE.PlaneGeometry(16, 300);
+  const roadMat = new THREE.MeshStandardMaterial({ color: 0x333742, roughness: 0.88 });
+  const roadMesh = new THREE.Mesh(roadGeo, roadMat);
+  roadMesh.rotation.x = -Math.PI / 2;
+  roadMesh.receiveShadow = true;
+  threeScene.add(roadMesh);
+
+  // Yellow Left Shoulder Line
+  const yellowLine = new THREE.Mesh(
+    new THREE.BoxGeometry(0.22, 0.015, 300),
+    new THREE.MeshStandardMaterial({ color: 0xEAB308, emissive: 0xCA8A04, emissiveIntensity: 0.2 })
+  );
+  yellowLine.position.set(-3.8, 0.01, 0);
+  threeScene.add(yellowLine);
+
+  // White Dashes
+  for (let i = 0; i < 24; i++) {
+    const dash = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.015, 4.5),
+      new THREE.MeshStandardMaterial({ color: 0xF8FAFC })
+    );
+    dash.position.set(0.8, 0.01, -120 + i * 10);
+    threeScene.add(dash);
+    roadDashes.push(dash);
+  }
+
+  // Concrete Jersey Barrier
+  const barrier = new THREE.Mesh(
+    new THREE.BoxGeometry(0.45, 0.70, 300),
+    new THREE.MeshStandardMaterial({ color: 0xCBD5E1, roughness: 0.9 })
+  );
+  barrier.position.set(4.8, 0.35, 0);
+  barrier.castShadow = true;
+  threeScene.add(barrier);
+
+  // Flower Beds
+  for (let z = -120; z < 120; z += 5) {
+    const bush = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0x166534 })
+    );
+    bush.position.set(5.6, 0.35, z);
+    bush.scale.set(0.9, 0.6, 1.8);
+    threeScene.add(bush);
+    flowerBeds.push(bush);
+  }
+
+  // ── LOAD BLENDER 3D SCOOTER GLB ──
+  if (typeof THREE.GLTFLoader !== 'undefined') {
+    const loader = new THREE.GLTFLoader();
+    loader.load('assets/scooter_rider.glb', function(gltf) {
+      scooterModel = gltf.scene;
+      scooterModel.scale.set(2.8, 2.8, 2.8);
+      scooterModel.position.set(0, 0, 0);
+      scooterModel.rotation.y = -0.6;
+      scooterModel.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      threeScene.add(scooterModel);
+      console.log('✅ 3D Blender Scooter loaded in Three.js scene');
+    }, undefined, function(err) {
+      console.warn('Could not load GLB directly, procedural fallback active', err);
+    });
+  }
+
+  // Resize listener
+  window.addEventListener('resize', () => {
+    if (!threeRenderer || !canvas.parentElement) return;
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    threeCamera.aspect = w / h;
+    threeCamera.updateProjectionMatrix();
+    threeRenderer.setSize(w, h);
+  });
+
+  // Animation Loop
+  const clock = new THREE.Clock();
+  function animate3D() {
+    requestAnimationFrame(animate3D);
+    const delta = clock.getDelta();
+    const spd = roadMotion ? (liveData.speed || 48) : 0;
+    const scroll = (spd / 3.6) * delta * 2.5;
+
+    // Scroll road dashes
+    roadDashes.forEach(d => {
+      d.position.z += scroll;
+      if (d.position.z > 80) d.position.z -= 240;
+    });
+
+    // Scroll flower beds
+    flowerBeds.forEach(f => {
+      f.position.z += scroll;
+      if (f.position.z > 80) f.position.z -= 240;
+    });
+
+    // Animate 3D Scooter bobbing & wheel spin
+    if (scooterModel) {
+      scooterModel.position.y = spd > 1 ? Math.sin(Date.now() * 0.015) * 0.008 : Math.sin(Date.now() * 0.0015) * 0.004;
+      scooterModel.traverse(child => {
+        if (child.isMesh && (child.name.includes('Tire') || child.name.includes('Rim') || child.name.includes('Spoke') || child.name.includes('Hub'))) {
+          child.rotation.x += (spd / 3.6) * delta * 5;
+        }
+      });
+    }
+
+    if (threeControls) threeControls.update();
+    threeRenderer.render(threeScene, threeCamera);
+  }
+  animate3D();
+}
+
+function setView(mode) {
+  currentView = mode;
+  document.getElementById('btn-3d').classList.toggle('active', mode === '3d');
+  document.getElementById('btn-sys').classList.toggle('active', mode === 'system');
+  document.getElementById('btn-bp').classList.toggle('active', mode === 'blueprint');
+
+  const bpOverlay = document.getElementById('bp-overlay');
+  const legend = document.getElementById('cad-legend');
+  const pins = document.querySelectorAll('.hud-pin');
+
+  if (mode === 'blueprint') {
+    bpOverlay.classList.add('active');
+    legend.classList.remove('active');
+    pins.forEach(p => p.style.display = 'none');
+  } else if (mode === 'system') {
+    bpOverlay.classList.remove('active');
+    legend.classList.add('active');
+    pins.forEach(p => p.style.display = 'flex');
+    if (scooterModel) {
+      scooterModel.traverse(child => {
+        if (child.isMesh && child.material) {
+          const mName = child.material.name || '';
+          if (mName.includes('LiIon') || mName.includes('BMS') || mName.includes('ECU') || mName.includes('PMSM')) {
+            child.visible = true;
+          }
+        }
+      });
+    }
+  } else {
+    bpOverlay.classList.remove('active');
+    legend.classList.remove('active');
+    pins.forEach(p => p.style.display = 'flex');
+  }
+}
+
+function setPaint(color, btn) {
+  currentPaint = color;
+  document.querySelectorAll('.c-chip').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const hex = paintColorMap[color] || 0xEDE9E1;
+  if (scooterModel) {
+    scooterModel.traverse(child => {
+      if (child.isMesh && child.material) {
+        const matName = child.material.name || '';
+        const objName = child.name || '';
+        if (matName.includes('ScooterBody') || matName.includes('Ivory') || objName.includes('Apron') || objName.includes('Fender') || objName.includes('Body_Side') || objName.includes('Body_Center')) {
+          child.material.color.setHex(hex);
+        }
+      }
+    });
+  }
+}
+
+function toggleMotion() {
+  roadMotion = !roadMotion;
+  document.getElementById('btn-pause').textContent = roadMotion ? '⏸' : '▶';
+}
+
+function resetCamera() {
+  if (threeCamera && threeControls) {
+    threeCamera.position.set(-3.2, 1.8, 4.2);
+    threeControls.target.set(0.3, 1.1, 0);
+    threeControls.update();
+  }
+}
+
+function cycleCamera() {
+  if (!threeCamera || !threeControls) return;
+  const presets = [
+    { pos: [-3.2, 1.8, 4.2], target: [0.3, 1.1, 0] },
+    { pos: [-6.5, 1.5, 0.2], target: [0, 1.1, 0] },
+    { pos: [0, 12, 0.5], target: [0, 0, 0] },
+    { pos: [-0.5, 1.6, 6.0], target: [0, 1.0, 0] }
+  ];
+  cameraIdx = (cameraIdx + 1) % presets.length;
+  const p = presets[cameraIdx];
+  threeCamera.position.set(...p.pos);
+  threeControls.target.set(...p.target);
+  threeControls.update();
+}
+
+// ── GPS MAP ──
+let mapZoom = 1;
+function drawMap() {
+  const canvas = document.getElementById('map-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.parentElement.clientWidth;
+  const h = canvas.height = canvas.parentElement.clientHeight;
+
+  ctx.fillStyle = '#090e1a';
+  ctx.fillRect(0, 0, w, h);
+
+  // Road network
+  ctx.strokeStyle = '#1e293d';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(30, h-30); ctx.lineTo(w*0.4, h*0.6); ctx.lineTo(w*0.8, h*0.7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w*0.2, 30); ctx.lineTo(w*0.5, h*0.4); ctx.lineTo(w*0.9, 40); ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#64748b';
+  ctx.font = '10px Inter, sans-serif';
+  ctx.fillText('Viman Nagar', w*0.38, 35);
+  ctx.fillText('Kharadi', w*0.75, 65);
+  ctx.fillText('Hadapsar', 35, h*0.45);
+  ctx.fillText('Magarpatta City', w*0.62, h-25);
+
+  // Active route
+  ctx.strokeStyle = '#2563eb';
+  ctx.lineWidth = 3.5;
+  ctx.shadowColor = 'rgba(37,99,235,0.8)';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(35, h*0.45);
+  ctx.quadraticCurveTo(w*0.4, h*0.35, w*0.75, 65);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Scooter marker
+  const mx = w * (0.45 + Math.sin(Date.now() * 0.0005) * 0.15);
+  const my = h * 0.42;
+  ctx.fillStyle = 'rgba(16,185,129,0.25)';
+  ctx.beginPath(); ctx.arc(mx, my, 14, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#10b981';
+  ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '9px Inter';
+  ctx.fillText('🛵', mx-6, my+4);
+}
+function zoomMap(d) { mapZoom = Math.max(0.6, Math.min(2, mapZoom + d*0.2)); drawMap(); }
+
+// ── TELEMETRY CHART ──
+let telemChart;
+const chartData = {
+  labels: ['10:30','10:31','10:32','10:33','10:34','10:35'],
+  voltage: [72.4,71.8,73.1,72.0,71.5,72.4],
+  current: [12.5,18.2,14.0,22.4,16.1,12.5],
+  speed: [45,52,48,55,42,48]
+};
+
+function initChart() {
+  const canvas = document.getElementById('chart-telem');
+  if (!canvas || typeof Chart === 'undefined') return;
+  telemChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: chartData.labels,
+      datasets: [
+        { label:'Battery Voltage (V)', data:chartData.voltage, borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.08)', borderWidth:2, pointRadius:2, tension:0.35, fill:true },
+        { label:'Motor Current (A)', data:chartData.current, borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.08)', borderWidth:2, pointRadius:2, tension:0.35, fill:true },
+        { label:'Vehicle Speed (km/h)', data:chartData.speed, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.08)', borderWidth:2, pointRadius:2, tension:0.35, fill:true }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: { display:true, position:'top', labels:{ color:'#94a3b8', font:{size:9.5,family:'Inter'}, boxWidth:10, padding:8 } },
+        tooltip: { backgroundColor:'#0f172a', borderColor:'#1e293b', borderWidth:1 }
+      },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:9}} },
+        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:9}}, min:0, max:100 }
+      }
+    }
+  });
+}
+
+function updateChart(d) {
+  if (!telemChart) return;
+  const now = new Date();
+  const t = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  chartData.labels.push(t);
+  chartData.voltage.push(d.battery_voltage || 72.4);
+  chartData.current.push(d.battery_current || 12.5);
+  chartData.speed.push(d.speed || 48);
+  if (chartData.labels.length > 8) { chartData.labels.shift(); chartData.voltage.shift(); chartData.current.shift(); chartData.speed.shift(); }
+  telemChart.data.labels = chartData.labels;
+  telemChart.data.datasets[0].data = chartData.voltage;
+  telemChart.data.datasets[1].data = chartData.current;
+  telemChart.data.datasets[2].data = chartData.speed;
+  telemChart.update('none');
+}
+
+// ── HEALTH DONUT ──
+function drawDonut(score) {
+  const canvas = document.getElementById('donut-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx=22, cy=22, r=18;
+  ctx.clearRect(0,0,44,44);
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=4; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+(score/100)*Math.PI*2); ctx.strokeStyle='#10b981'; ctx.lineWidth=4; ctx.lineCap='round'; ctx.stroke();
+}
+
+// ── LIVE DATA UPDATE ──
+function onUpdate(d) {
+  liveData = Object.assign(liveData, d);
+  const soc = liveData.battery_soc||82, spd = liveData.speed||48, mt = liveData.motor_temperature||63, hs = liveData.health_score||92;
+  document.getElementById('m-soc').textContent = `${soc.toFixed(0)}%`;
+  document.getElementById('m-soc-bar').style.width = `${soc.toFixed(0)}%`;
+  document.getElementById('m-speed').textContent = spd.toFixed(0);
+  document.getElementById('m-temp').textContent = mt.toFixed(0);
+  document.getElementById('m-health').textContent = hs.toFixed(0);
+  document.getElementById('m-range').textContent = Math.round(soc * 1.56);
+  document.getElementById('donut-val').textContent = hs.toFixed(0);
+  drawDonut(hs);
+  updateChart(liveData);
+  drawMap();
+}
+
+// ── WEBSOCKET + SIMULATION ──
+function connectWS() {
+  try {
+    const ws = new WebSocket('ws://localhost:8000/ws/vehicle/1');
+    ws.onmessage = (e) => { try { const m = JSON.parse(e.data); if (m.type !== 'connected') onUpdate(m); } catch(_){} };
+  } catch(_) {}
+
+  setInterval(() => {
+    const n = (Math.random()-0.5)*2;
+    const s = Math.max(20, Math.min(80, (liveData.speed||48)+n));
+    const mt = Math.max(55, Math.min(75, (liveData.motor_temperature||63)+(s>60?0.2:-0.1)));
+    const soc = Math.max(20, (liveData.battery_soc||82)-0.01);
+    onUpdate({ speed:s, motor_temperature:mt, battery_soc:soc, battery_voltage:72+Math.sin(Date.now()*0.001)*0.8, battery_current:10+(s/5), health_score:92 });
+  }, 2000);
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  initThreeScene();
+  drawMap();
+  initChart();
+  drawDonut(92);
+  connectWS();
+});
+</script>
+</body>
+</html>
