@@ -1,0 +1,181 @@
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+/* ── Tailwind v4 Theme ── */
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-bg-main: #FFFFFF;
+  --color-bg-sidebar: #F8FAFC;
+  --color-bg-card: #FFFFFF;
+  --color-bg-card-inner: #F1F5F9;
+  --color-border: #E2E8F0;
+  --color-border-light: #F1F5F9;
+
+  --color-primary: #4F46E5;
+  --color-primary-light: #EEF2FF;
+  --color-primary-glow: rgba(79, 70, 229, 0.15);
+
+  --color-success: #059669;
+  --color-success-light: #ECFDF5;
+  --color-warning: #D97706;
+  --color-warning-light: #FFFBEB;
+  --color-danger: #DC2626;
+  --color-danger-light: #FEF2F2;
+  --color-info: #0284C7;
+  --color-info-light: #F0F9FF;
+
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+
+  --color-accent-teal: #0D9488;
+  --color-accent-cyan: #06B6D4;
+  --color-accent-indigo: #4F46E5;
+  --color-accent-emerald: #059669;
+  --color-accent-amber: #D97706;
+  --color-accent-red: #DC2626;
+  --color-accent-purple: #7C3AED;
+}
+
+/* ── Base ── */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg-main);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ── Card glass effect ── */
+.card-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-glass:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Metric value animation ── */
+.metric-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  transition: color 0.3s ease;
+}
+
+/* ── Live pulse ── */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+.live-dot {
+  animation: livePulse 1.8s ease-in-out infinite;
+}
+
+/* ── Fade in ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* ── Nav active bar ── */
+.nav-active-bar {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--color-primary);
+  border-radius: 0 3px 3px 0;
+}
+
+/* ── Three.js canvas container ── */
+.three-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 50%, #F0F9FF 100%);
+}
+.three-viewport canvas {
+  outline: none;
+}
+
+/* ── HUD overlay on 3D viewport ── */
+.hud-overlay {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+}
+.hud-overlay > * {
+  pointer-events: auto;
+}
+
+/* ── Chart container ── */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+}
+
+/* ── Status dot ── */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.healthy { background: var(--color-success); box-shadow: 0 0 6px rgba(5, 150, 105, 0.4); }
+.status-dot.warning { background: var(--color-warning); box-shadow: 0 0 6px rgba(217, 119, 6, 0.4); }
+.status-dot.critical { background: var(--color-danger); box-shadow: 0 0 6px rgba(220, 38, 38, 0.4); }
+
+/* ── Flow step ── */
+.flow-step {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease;
+}
+.flow-step:hover {
+  transform: translateX(4px);
+}
+.flow-step.green { background: #ECFDF5; border-color: #A7F3D0; color: #065F46; }
+.flow-step.blue { background: #F0F9FF; border-color: #BAE6FD; color: #075985; }
+.flow-step.yellow { background: #FFFBEB; border-color: #FDE68A; color: #92400E; }
+.flow-step.purple { background: #F5F3FF; border-color: #DDD6FE; color: #5B21B6; }
+.flow-step.red { background: #FEF2F2; border-color: #FECACA; color: #991B1B; }
