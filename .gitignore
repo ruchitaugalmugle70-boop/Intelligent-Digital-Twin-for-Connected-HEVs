@@ -24,3 +24,10 @@ venv/
 # Logs
 *.log
 
+# Node & Build
+node_modules/
+dist/
+dist-ssr/
+.turbo/
+
+
